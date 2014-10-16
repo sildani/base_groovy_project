@@ -95,38 +95,50 @@
     </copy>
   </target>
 
+  <property name="test.printSummary" value="yes"/>
   <property name="test.formatter" value="xml"/>
   <property name="test.useFile" value="true"/>
   <property name="test.haltOnError" value="no"/>
   <property name="test.haltOnFailure" value="no"/>
 
-  <target name="test" depends="compile" description="Run jUnit test classes">
+  <target name="test" depends="compile" description="Run jUnit test classes (to run a partial test -Dtest.pattern=**/**BlahTest.class OR -Dtest=com.example.BlahTest OR -Dtest=com.example.BlahTest -Dmethods=my_test,your_test">
 
     <delete dir="${gen}/unit/RESULTS" />
     <mkdir dir="${gen}/unit/RESULTS" />
     <mkdir dir="${gen}/unit/RESULTS/html" />
+    <echo message=""/>
 
-    <junit printsummary="yes" haltonerror="${test.haltOnError}" haltonfailure="${test.haltOnFailure}" fork="false" failureproperty="testFailed" showoutput="true">
+    <junit printsummary="${test.printSummary}" haltonerror="${test.haltOnError}" haltonfailure="${test.haltOnFailure}" fork="false" failureproperty="testFailed" showoutput="${test.showOutput}">
       <formatter type="${test.formatter}" usefile="${test.useFile}" />
-      <batchtest todir="${gen}/unit/RESULTS">
+
+      <!-- run a single class ex: -Dtest=com.ipcoop.vps.lamp.machine.TransferAddMachineTest -->
+      <test todir="${gen}/unit/RESULTS" name="${test}" if="test" unless="methods" />
+
+      <!-- run a single class, and specific methods (comma separated) ex: -Dtest=com.ipcoop.vps.lamp.machine.TransferAddMachineTest -Dmethods=should_transition_indexable -->
+      <test todir="${gen}/unit/RESULTS" name="${test}" methods="${methods}" if="methods" />
+
+      <!-- run a bunch of tests, default pattern is all tests -->
+      <batchtest todir="${gen}/unit/RESULTS" unless="test">
         <fileset dir="${gen}/unit">
           <include name="${test.pattern}" />
           <include name="${spec.pattern}" />
         </fileset>
       </batchtest>
+
       <classpath refid="cp" />
       <classpath path="conf" />
     </junit>
 
+    <echo message=""/>
     <junitreport todir="${gen}/unit/RESULTS">
       <fileset dir="${gen}/unit/RESULTS">
         <include name="TEST-*.xml" />
       </fileset>
-      <!--<report format="frames" todir="${gen}/unit/RESULTS/html"/>-->
       <report todir="${gen}/unit/RESULTS/html" />
     </junitreport>
-
+    <echo message=""/>
     <echo message="See a pretty report at ${gen}/unit/RESULTS/html/index.html" />
+
     <fail if="testFailed" message="Unit test(s) failed.  See reports!" />
 
   </target>
